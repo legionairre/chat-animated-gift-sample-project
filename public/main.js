@@ -5,65 +5,77 @@ import { addMessage, animateGift, isAnimatingGiftUI } from "./dom_updates.js";
 import Queue from "./queue.js";
 
 const api = new APIWrapper(false, false, true);
-const animatedGiftEvents = new Queue();
-const normalMessages = new Queue();
+const animatedGiftMessageEventsQueue = new Queue();
+const normalMessageEventsQueue = new Queue();
 
 
 /**
  * Listen API. API will give new message events every per 200ms.
  * Message events adding related message queues.
  */
-api.setEventHandler((messages) => {
-  messages.forEach(message => {
-    if((message.type === API_EVENT_TYPE.ANIMATED_GIFT)){
-      animatedGiftEvents.enqueue(message);
-    }else{
-      normalMessages.enqueue(message);
+api.setEventHandler((events) => {
+  events.forEach(event => {
+    if(!isDuplicateEvent(event)) {
+      if((event.type === API_EVENT_TYPE.ANIMATED_GIFT)){
+        animatedGiftMessageEventsQueue.enqueue(event);
+      }else{
+        normalMessageEventsQueue.enqueue(event);
+      }
     }
   })
 })
 
 /**
- * Check message old or new. If the message older than 20 seconds return true.
+ * Check the event old or new. If the event older than 20 seconds return true.
  *
- * @param msg
+ * @param event
  * @returns {boolean}
  */
-function oldMessageValidation(msg){
-  let msgTimeDiffBySec = ( new Date().getTime() - msg.timestamp.getTime() ) / 1000;
-  return msgTimeDiffBySec > 20;
+function isOldEvent(event){
+  let eventTimeDiffBySec = ( new Date().getTime() - event.timestamp.getTime() ) / 1000;
+  return eventTimeDiffBySec > 20;
+}
+
+
+function isDuplicateEvent(event) {
+  const animatedGiftMessageEventsQueueIds = animatedGiftMessageEventsQueue.getQueueElementsById();
+  const normalMessageEventsQueueIds = normalMessageEventsQueue.getQueueElementsById();
+
+  if(animatedGiftMessageEventsQueueIds.includes(event.id) || normalMessageEventsQueueIds.includes(event.id)) {
+    return true
+  }
 }
 
 /**
  * Adding a new message to screen every per 500ms, if message queues have any message
  */
 setInterval(() => {
-  // animatedGiftEvents
-  if ( !animatedGiftEvents.isEmpty() ) {
+  // animatedGiftMessageEventsQueue
+  if ( !animatedGiftMessageEventsQueue.isEmpty() ) {
     /**
      * There can only be at most one gift animation visible on screen at any given time.
      * If there is an ongoing gift animation, other/newer Animated Gifts should wait for it to end.
      * That's why check isAnimatingGiftUI()
      */
-    const animatedGiftMessage = animatedGiftEvents.dequeue();
-    addMessage(animatedGiftMessage);
+    const animatedGiftEvent = animatedGiftMessageEventsQueue.dequeue();
+    addMessage(animatedGiftEvent);
     if ( !isAnimatingGiftUI() ) {
       /**
-       * Get animatedGiftMessage from animatedGiftEvents queue
+       * Get animatedGiftEvent from animatedGiftMessageEventsQueue queue
        * Add message to screen and animate gift
        */
-      animateGift(animatedGiftMessage);
+      animateGift(animatedGiftEvent);
     }
   }
-  // normalMessages
-  if ( !normalMessages.isEmpty() ) {
+  // normalMessageEventsQueue
+  if ( !normalMessageEventsQueue.isEmpty() ) {
     /**
-     * Get normalMessage from normalMessages queue
+     * Get normalEvent from normalMessageEventsQueue queue
      * Add message to screen
      */
-    let normalMessage = normalMessages.dequeue();
-    if ( !oldMessageValidation(normalMessage) ) {
-      addMessage(normalMessage)
+    let normalEvent = normalMessageEventsQueue.dequeue();
+    if ( !isOldEvent(normalEvent) ) {
+      addMessage(normalEvent)
     }
   }
 

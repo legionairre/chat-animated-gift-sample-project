@@ -17,3 +17,7 @@ Queue.prototype.isEmpty = function () {
 Queue.prototype.length = function() {
   return this.elements.length;
 }
+
+Queue.prototype.getQueueElementsById = function () {
+  return this.elements.map(element => element.id);
+}
