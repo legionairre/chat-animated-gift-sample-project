@@ -2,10 +2,11 @@
 
 import { APIWrapper, API_EVENT_TYPE } from "./api.js";
 import { addMessage, animateGift, isAnimatingGiftUI } from "./dom_updates.js";
+import Queue from "./queue.js";
 
 const api = new APIWrapper(false, false, true);
-const animatedGiftMessages = [];
-const normalMessages = [];
+const animatedGiftEvents = new Queue();
+const normalMessages = new Queue();
 
 
 /**
@@ -15,9 +16,9 @@ const normalMessages = [];
 api.setEventHandler((messages) => {
   messages.forEach(message => {
     if((message.type === API_EVENT_TYPE.ANIMATED_GIFT)){
-      animatedGiftMessages.push(message);
+      animatedGiftEvents.enqueue(message);
     }else{
-      normalMessages.push(message);
+      normalMessages.enqueue(message);
     }
   })
 })
@@ -37,30 +38,30 @@ function oldMessageValidation(msg){
  * Adding a new message to screen every per 500ms, if message queues have any message
  */
 setInterval(() => {
-  // animatedGiftMessages
-  if ( animatedGiftMessages.length > 0 ) {
+  // animatedGiftEvents
+  if ( !animatedGiftEvents.isEmpty() ) {
     /**
      * There can only be at most one gift animation visible on screen at any given time.
      * If there is an ongoing gift animation, other/newer Animated Gifts should wait for it to end.
      * That's why check isAnimatingGiftUI()
      */
+    const animatedGiftMessage = animatedGiftEvents.dequeue();
+    addMessage(animatedGiftMessage);
     if ( !isAnimatingGiftUI() ) {
       /**
-       * Get animatedGiftMessage from animatedGiftMessages queue
+       * Get animatedGiftMessage from animatedGiftEvents queue
        * Add message to screen and animate gift
        */
-      const animatedGiftMessage = animatedGiftMessages.shift();
-      addMessage(animatedGiftMessage);
       animateGift(animatedGiftMessage);
     }
   }
   // normalMessages
-  if ( normalMessages.length > 0 ) {
+  if ( !normalMessages.isEmpty() ) {
     /**
      * Get normalMessage from normalMessages queue
      * Add message to screen
      */
-    let normalMessage = normalMessages.shift();
+    let normalMessage = normalMessages.dequeue();
     if ( !oldMessageValidation(normalMessage) ) {
       addMessage(normalMessage)
     }
