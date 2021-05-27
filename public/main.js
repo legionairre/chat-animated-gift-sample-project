@@ -36,7 +36,13 @@ function isOldEvent(event){
   return eventTimeDiffBySec > 20;
 }
 
-
+/**
+ * Check the event is duplicate or not. If the incoming event id already have in
+ * animatedGiftMessageEventsQueueIds or normalMessageEventsQueueIds return true.
+ *
+ * @param event
+ * @returns {boolean}
+ */
 function isDuplicateEvent(event) {
   const animatedGiftMessageEventsQueueIds = animatedGiftMessageEventsQueue.getQueueElementsById();
   const normalMessageEventsQueueIds = normalMessageEventsQueue.getQueueElementsById();
