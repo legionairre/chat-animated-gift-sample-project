@@ -1,7 +1,7 @@
 // @ts-check
 
 import { APIWrapper, API_EVENT_TYPE } from "./api.js";
-import { addMessage, animateGift, isAnimatingGiftUI } from "./dom_updates.js";
+import { addMessage, animateGift, isPossiblyAnimatingGift, isAnimatingGiftUI } from "./dom_updates.js";
 import Queue from "./queue.js";
 
 const api = new APIWrapper(false, false, true);
@@ -61,11 +61,11 @@ setInterval(() => {
     /**
      * There can only be at most one gift animation visible on screen at any given time.
      * If there is an ongoing gift animation, other/newer Animated Gifts should wait for it to end.
-     * That's why check isAnimatingGiftUI()
+     * That's why check isAnimatingGiftUI() and isPossiblyAnimatingGift()
      */
     const animatedGiftEvent = animatedGiftMessageEventsQueue.dequeue();
     addMessage(animatedGiftEvent);
-    if ( !isAnimatingGiftUI() ) {
+    if ( !isPossiblyAnimatingGift() && !isAnimatingGiftUI() ) {
       /**
        * Get animatedGiftEvent from animatedGiftMessageEventsQueue queue
        * Add message to screen and animate gift
